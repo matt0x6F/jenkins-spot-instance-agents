@@ -1,0 +1,239 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Spot instance for use with Jenkins EC2-Fleet plugin
+Parameters:
+  MasterSG:
+    Description: 'Jenkins Master Security Group.'
+    Type: String
+  ParentVpcId:
+    Description: 'Id of Parent VPC'
+    Type: String
+  ParentVpcCidr:
+    Description: 'Cidr of Parent VPC'
+    Type: String
+  PrivateSubnet2aId:
+    Description: 'Subnet ID for management private subnet.'
+    Type: String
+  PrivateSubnet2bId:
+    Description: 'Subnet ID for management private subnet.'
+    Type: String
+  SshKey:
+    Description: 'SSH Key to use'
+    Type: String
+  TargetCapacity:
+    Description: 'TargetCapacity'
+    Type: Number
+Mappings:
+  RegionMap:
+    'ap-south-1':
+      AMI: 'ami-d7abd1b8'
+    'eu-west-2':
+      AMI: 'ami-489f8e2c'
+    'eu-west-1':
+      AMI: 'ami-ebd02392'
+    'ap-northeast-2':
+      AMI: 'ami-8663bae8'
+    'ap-northeast-1':
+      AMI: 'ami-4af5022c'
+    'sa-east-1':
+      AMI: 'ami-d27203be'
+    'ca-central-1':
+      AMI: 'ami-5ac17f3e'
+    'ap-southeast-1':
+      AMI: 'ami-fdb8229e'
+    'ap-southeast-2':
+      AMI: 'ami-30041c53'
+    'eu-central-1':
+      AMI: 'ami-657bd20a'
+    'us-east-1':
+      AMI: 'ami-4fffc834'
+    'us-east-2':
+      AMI: 'ami-ea87a78f'
+    'us-west-1':
+      AMI: 'ami-3a674d5a'
+    'us-west-2':
+      AMI: 'ami-aa5ebdd2'
+Resources:
+  SpotFleetSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'jenkins-master'
+      VpcId: !Ref ParentVpcId
+      SecurityGroupIngress:
+      - FromPort: 22
+        ToPort: 22
+        CidrIp: !Ref ParentVpcCidr
+        IpProtocol: tcp
+  SpotFleetIP:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: '/'
+      Roles:
+        - !Ref SpotFleetRole
+  SpotFleetRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'spotfleet.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+      - PolicyName: ec2
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'ec2:*'
+            Resource:
+            - '*'
+      - PolicyName: iam
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'iam:ListRoles'
+            - 'iam:PassRole'
+            - 'iam:ListInstanceProfiles'
+            Resource:
+            - '*'
+  SpotFleet:
+    Type: 'AWS::EC2::SpotFleet'
+    Properties:
+      SpotFleetRequestConfigData:
+        AllocationStrategy: diversified
+        IamFleetRole: !GetAtt SpotFleetRole.Arn
+        SpotPrice: '0.1'
+        TargetCapacity: !Ref TargetCapacity
+        Type: 'maintain'
+        ReplaceUnhealthyInstances: true
+        LaunchSpecifications:
+        - ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+          IamInstanceProfile:
+            Arn: !GetAtt SpotFleetIP.Arn
+          InstanceType: c4.large
+          EbsOptimized: true
+          KeyName: !Ref SshKey
+          SecurityGroups:
+          - GroupId: !Ref SpotFleetSG
+          WeightedCapacity: 1
+          SubnetId: !Ref PrivateSubnet2aId
+          UserData:
+            Fn::Base64: |
+              #!/bin/bash -x
+              yum install java-1.8.0 -y
+              yum remove java-1.7.0-openjdk -y
+
+              mkdir /opt/jenkins-agent
+              mkfs -t ext4 /dev/xvdba
+              mount /dev/xvdba /opt/jenkins-agent
+              chown ec2-user:ec2-user /opt/jenkins-agent
+          BlockDeviceMappings:
+          - DeviceName: '/dev/xvda'
+            Ebs:
+              DeleteOnTermination: true
+              VolumeType: gp2
+              VolumeSize: 8
+          - DeviceName: '/dev/xvdba'
+            Ebs:
+              DeleteOnTermination: true
+              VolumeType: gp2
+              VolumeSize: 15
+        - ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+          IamInstanceProfile:
+            Arn: !GetAtt SpotFleetIP.Arn
+          InstanceType: m4.large
+          EbsOptimized: true
+          KeyName: !Ref SshKey
+          SecurityGroups:
+          - GroupId: !Ref SpotFleetSG
+          WeightedCapacity: 1
+          SubnetId: !Ref PrivateSubnet2aId
+          UserData:
+            Fn::Base64: |
+              #!/bin/bash -x
+              yum install java-1.8.0 -y
+              yum remove java-1.7.0-openjdk -y
+
+              mkdir /opt/jenkins-agent
+              mkfs -t ext4 /dev/xvdba
+              mount /dev/xvdba /opt/jenkins-agent
+              chown ec2-user:ec2-user /opt/jenkins-agent
+          BlockDeviceMappings:
+          - DeviceName: '/dev/xvda'
+            Ebs:
+              DeleteOnTermination: true
+              VolumeType: gp2
+              VolumeSize: 8
+          - DeviceName: '/dev/xvdba'
+            Ebs:
+              DeleteOnTermination: true
+              VolumeType: gp2
+              VolumeSize: 15
+        - ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+          IamInstanceProfile:
+            Arn: !GetAtt SpotFleetIP.Arn
+          InstanceType: m3.large
+          KeyName: !Ref SshKey
+          SecurityGroups:
+          - GroupId: !Ref SpotFleetSG
+          WeightedCapacity: 1
+          SubnetId: !Ref PrivateSubnet2aId
+          UserData:
+            Fn::Base64: |
+              #!/bin/bash -x
+              yum install java-1.8.0 git docker -y
+              yum remove java-1.7.0-openjdk -y
+
+              mkdir /opt/jenkins-agent
+              mkfs -t ext4 /dev/xvdba
+              mount /dev/xvdba /opt/jenkins-agent
+              chown ec2-user:ec2-user /opt/jenkins-agent
+          BlockDeviceMappings:
+          - DeviceName: '/dev/xvda'
+            Ebs:
+              DeleteOnTermination: true
+              VolumeType: gp2
+              VolumeSize: 8
+          - DeviceName: '/dev/xvdba'
+            Ebs:
+              DeleteOnTermination: true
+              VolumeType: gp2
+              VolumeSize: 15
+        - ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+          IamInstanceProfile:
+            Arn: !GetAtt SpotFleetIP.Arn
+          InstanceType: c3.large
+          KeyName: !Ref SshKey
+          SecurityGroups:
+          - GroupId: !Ref SpotFleetSG
+          WeightedCapacity: 1
+          SubnetId: !Ref PrivateSubnet2aId
+          UserData:
+            Fn::Base64: |
+              #!/bin/bash -x
+              yum install java-1.8.0 -y
+              yum remove java-1.7.0-openjdk -y
+
+              mkdir /opt/jenkins-agent
+              mkfs -t ext4 /dev/xvdba
+              mount /dev/xvdba /opt/jenkins-agent
+              chown ec2-user:ec2-user /opt/jenkins-agent
+          BlockDeviceMappings:
+          - DeviceName: '/dev/xvda'
+            Ebs:
+              DeleteOnTermination: true
+              VolumeType: gp2
+              VolumeSize: 8
+          - DeviceName: '/dev/xvdba'
+            Ebs:
+              DeleteOnTermination: true
+              VolumeType: gp2
+              VolumeSize: 15
