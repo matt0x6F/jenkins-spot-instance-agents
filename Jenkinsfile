@@ -9,4 +9,7 @@ node('master'){
         echo "Executing shell script ${workspace}/tests/validate_yaml.sh"
         sh "bash ${workspace}/tests/validate_yaml.sh"
     }
+    stage('Clean Workspace'){
+      cleanWs()
+    }
 }
