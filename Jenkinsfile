@@ -7,6 +7,6 @@ node('master'){
         sh "chmod +x ${workspace}/tests/validate_yaml.sh"
 
         echo "Executing shell script ${workspace}/tests/validate_yaml.sh"
-        sh "sh ${workspace}/tests/validate_yaml.sh"
+        sh "bash ${workspace}/tests/validate_yaml.sh"
     }
 }
