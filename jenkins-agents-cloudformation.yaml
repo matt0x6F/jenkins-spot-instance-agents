@@ -5,7 +5,7 @@ Parameters:
   MasterSG:
     Description: 'Jenkins Master Security Group.'
     Type: String
-  ParentVpcId:
+  ParentVpcId: {}{0}
     Description: 'Id of Parent VPC'
     Type: String
   ParentVpcCidr:
