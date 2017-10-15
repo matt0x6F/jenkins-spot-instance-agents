@@ -3,10 +3,10 @@ node('master'){
 
     stage('Validate YAML'){
         checkout scm
-        sh """
-            print "Applying permissions to ${workspace}/tests/validate_yaml.sh"
-            chmod +x ${workspace}/tests/validate_yaml.sh
-           """
-        "${workspace}/tests/validate_yaml.sh".execute()
+        echo "Setting permissions on ${workspace}/tests/validate_yaml.sh"
+        sh "chmod +x ${workspace}/tests/validate_yaml.sh"
+
+        echo "Executing shell script ${workspace}/tests/validate_yaml.sh"
+        sh "sh ${workspace}/tests/validate_yaml.sh"
     }
 }
