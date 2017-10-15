@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 declare -i RESULT=0
 set +e # Don't exit on error. Collect the errors instead.
