@@ -1,6 +1,8 @@
 node('master'){
+    def workspace = pwd()
+
     stage('Validate YAML'){
         checkout scm
-        "tests/validate_yaml.sh".execute()
+        "${workspace}/tests/validate_yaml.sh".execute()
     }
 }
